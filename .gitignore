@@ -53,3 +53,5 @@ tensorboard_log
 # .github
 .github/copilot-instructions.md
 env.sh
+
+checkpoints/

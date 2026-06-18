@@ -1,0 +1,72 @@
+{
+  // Relax 容器化开发环境：基于预装全部依赖的发布镜像，
+  // 在 VSCode / Cursor 中通过 "Reopen in Container" 一键进入。
+  "name": "Relax Dev",
+
+  // 复用已构建好 sglang / megatron / flash-attn 等依赖的发布镜像。
+  // 如需基于本地 Dockerfile 构建，可把 "image" 换成下面的 "build" 段。
+  "image": "relaxrl/relax:latest",
+  // "build": {
+  //   "dockerfile": "../docker/Dockerfile",
+  //   "context": "..",
+  //   "target": "relax"
+  // },
+
+  // 仓库挂载到项目约定路径 /root/Relax（脚本与文档默认 RELAX 路径）。
+  "workspaceFolder": "/root/Relax",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/root/Relax,type=bind,consistency=cached",
+
+  // 容器启动参数：GPU、共享内存、host 网络（Ray/SGLang 多进程通信）。
+  // --restart=unless-stopped：宿主机重启后容器自动拉起，避免重启后首次连接的
+  // 冷启动时序问题（除非你手动 docker stop 它）。
+  "runArgs": [
+    "--gpus", "all",
+    "--ipc=host",
+    "--shm-size=32g",
+    "--network=host",
+    "--restart=unless-stopped",
+    "--ulimit", "memlock=-1",
+    "--ulimit", "stack=67108864"
+  ],
+  // 让容器以 PID 1 init 进程运行，正确回收僵尸进程。
+  "init": true,
+  "remoteUser": "root",
+
+  // 与 scripts/entrypoint/ray-job.sh 对齐的运行时环境变量。
+  "containerEnv": {
+    "RELAX": "/root/Relax",
+    "MEGATRON": "/root/Megatron-LM/",
+    "PYTHONPATH": "/root/Relax:/root/Megatron-LM/",
+    "PYTHONUNBUFFERED": "1",
+    "CUDA_DEVICE_MAX_CONNECTIONS": "1"
+  },
+
+  // 持久化 HuggingFace 缓存，避免每次重建容器重复下载权重。
+  "mounts": [
+    "source=${localEnv:HOME}/.cache/huggingface,target=/root/.cache/huggingface,type=bind"
+  ],
+
+  // 镜像已装好依赖，仅做可编辑安装（--no-deps 保留镜像内精心固定的版本），
+  // 并修复 root 挂载仓库时 git 的 dubious ownership 警告。
+  "postCreateCommand": "git config --global --add safe.directory /root/Relax && pip install -e . --no-deps",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.debugpy",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python",
+        "editor.formatOnSave": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit"
+          }
+        }
+      }
+    }
+  }
+}

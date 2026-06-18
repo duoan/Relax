@@ -1,0 +1,2 @@
+max_turns: 16
+bash_timeout: 600.0

@@ -1,0 +1,2 @@
+max_turns: 2
+rollout_interaction_env_path: examples.cuda_kernels.env_cuda

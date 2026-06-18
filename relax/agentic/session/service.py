@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import ctypes
+import os
 import threading
 import time
 import zlib
@@ -55,7 +56,11 @@ app = FastAPI(title="Relax Agentic Chat API")
 logger = get_logger(__name__)
 
 AGENTIC_SESSION_SHARD_NAME_PREFIX = "agentic_session_shard"
-_DEFAULT_SESSION_SHARD_COUNT = 16
+# Number of chat-API replicas / session shards. Each chat replica reserves ~1
+# CPU and each shard ~0.25 CPU, so the default of 16 needs >20 CPUs free; on
+# small (e.g. 2-GPU / 24-CPU) nodes that starves the GPU placement groups. Allow
+# an env override so such nodes can shrink it without changing the default.
+_DEFAULT_SESSION_SHARD_COUNT = int(os.environ.get("RELAX_AGENTIC_SHARD_COUNT", "16"))
 _STALE_SESSION_SHARD_CLEANUP_LIMIT = 64
 _AGENTIC_SHARD_ALLOCATOR_ENV = {
     "MALLOC_ARENA_MAX": "2",
